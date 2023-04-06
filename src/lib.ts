@@ -1,8 +1,35 @@
 
 import type { Map } from '@geolonia/embed';
 import type GeoJSON from 'geojson'
+import * as turf from '@turf/turf'
 
 const svgNS = "http://www.w3.org/2000/svg"
+
+export const toFeatures = (map: Map, mask: GeoJSON.Feature<GeoJSON.Polygon>) => {
+  const features = map.queryRenderedFeatures(mask.geometry as any).map(feature => {
+    if(feature.geometry.type === 'Point') {
+      if(turf.inside(feature.geometry, mask)) {
+        feature.properties.layer = feature.layer
+        return feature
+      } else {
+        return null
+      }
+    } else {
+      // @ts-ignore
+      const clipped = turf.bboxClip(feature, mask)
+      // @ts-ignore
+      clipped.properties.layer = feature.layer
+      return clipped
+    }
+  }).filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
+
+  const layerIds = map.getStyle().layers.map(l => l.id)
+  features.sort((fa, fb) => {
+    console.log(layerIds.indexOf(fa.properties.layer.id), layerIds.indexOf(fb.properties.layer.id))
+    return layerIds.indexOf(fa.properties.layer.id) - layerIds.indexOf(fb.properties.layer.id)
+  })
+  return features
+}
 
 export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[], bbox: GeoJSON.Feature<GeoJSON.Polygon>) => {
   const xValues = bbox.geometry.coordinates[0].map(point => point[0])
@@ -105,4 +132,18 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
   }
 
   return `<?xml version="1.0"?>\n${svg.outerHTML}`
+}
+
+export const download = (svgString: string, inNewTab?: 'in-new-tab') => {
+  const url = URL.createObjectURL(new Blob([svgString],{ type: 'image/svg+xml' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  if(inNewTab) {
+    anchor.setAttribute('target', '_blank')
+  } else {
+    anchor.setAttribute('download', 'map')
+  }
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
