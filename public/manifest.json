@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "bbox2svg",
+  "name": "bbox2svgは地図からSVG形式の画像を簡単に生成できるウェブアプリです。デザインやウェブ開発で便利にご利用いただけます。",
   "icons": [
     {
       "src": "favicon.ico",
