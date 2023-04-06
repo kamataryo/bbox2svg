@@ -1,6 +1,7 @@
 {
   "name": "maplibregl-bbox2svg-control",
   "version": "0.1.0",
+  "homepage": "https://kamataryo.github.io/bbox2svg",
   "private": true,
   "dependencies": {
     "@geolonia/embed-react": "^1.2.1",
