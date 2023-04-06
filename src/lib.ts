@@ -25,7 +25,6 @@ export const toFeatures = (map: Map, mask: GeoJSON.Feature<GeoJSON.Polygon>) => 
 
   const layerIds = map.getStyle().layers.map(l => l.id)
   features.sort((fa, fb) => {
-    console.log(layerIds.indexOf(fa.properties.layer.id), layerIds.indexOf(fb.properties.layer.id))
     return layerIds.indexOf(fa.properties.layer.id) - layerIds.indexOf(fb.properties.layer.id)
   })
   return features
@@ -59,38 +58,43 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
 
   for (const { geometry, properties } of features) {
     const { type } = geometry
-    const { id: layerId, paint, layout } = properties.layer
+    const { id: layerId, paint, layout, type: layerType } = properties.layer
+    console.log(type, layerType)
     switch (type) {
       case 'Point':
+      case 'MultiPoint':
       {
-        const { coordinates }: GeoJSON.Point = geometry
-        let { x: cx, y: cy } = map.project(coordinates as [number, number]);
-        const textField = layout['text-field'].toString()
-        if(textField) {
-          const fill = paint['text-color'].toString()
-          const textSize = layout['text-size']
-          const text = document.createElementNS(svgNS, 'text');
-          text.setAttributeNS(svgNS, 'x', cx.toString())
-          text.setAttributeNS(svgNS, 'y', cy.toString())
-          text.setAttributeNS(svgNS, 'fill', fill)
-          text.setAttributeNS(svgNS, 'text-size', textSize)
-          text.textContent = textField
-          svg.append(text)
-        } else {
-          const circle = document.createElementNS(svgNS, "circle");
-          circle.setAttributeNS(svgNS, 'cx', cx.toString())
-          circle.setAttributeNS(svgNS, 'cy', cy.toString())
-          circle.setAttributeNS(svgNS, 'r', '5')
-          circle.setAttributeNS(svgNS, 'fill', 'red')
-          svg.append(circle)
+        const coordinatesList = Array.isArray(geometry.coordinates[0]) ? geometry.coordinates.flat() : [geometry.coordinates]
+        for (const coordinates of coordinatesList) {
+          let { x, y } = map.project(coordinates as [number, number]);
+          const textField = layout['text-field'].toString()
+          if(textField) {
+            const fill = paint['text-color'].toString()
+            const textSize = layout['text-size']
+            const text = document.createElementNS(svgNS, 'text');
+            text.setAttributeNS(svgNS, 'x', x.toString())
+            text.setAttributeNS(svgNS, 'y', y.toString())
+            text.setAttributeNS(svgNS, 'fill', fill)
+            text.setAttributeNS(svgNS, 'text-size', textSize)
+            text.textContent = textField
+            svg.append(text)
+          } else {
+            const circle = document.createElementNS(svgNS, "circle");
+            circle.setAttributeNS(svgNS, 'cx', x.toString())
+            circle.setAttributeNS(svgNS, 'cy', y.toString())
+            circle.setAttributeNS(svgNS, 'r', '5')
+            circle.setAttributeNS(svgNS, 'fill', 'red')
+            svg.append(circle)
+          }
         }
         break;
       }
       case 'LineString':
+      case 'MultiLineString':
       {
         const stroke = paint['line-color']
         if(stroke) {
-          const { coordinates } :GeoJSON.LineString = geometry
+          const coordinates = Array.isArray(geometry.coordinates[0][0]) ? geometry.coordinates.flat() : geometry.coordinates
           const path = document.createElementNS(svgNS, 'path')
           const d = coordinates.map((position, index) => {
             const command = index === 0 ? 'M' : 'L'
