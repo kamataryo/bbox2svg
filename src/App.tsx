@@ -2,13 +2,14 @@ import React, {  useCallback} from 'react';
 import './App.css';
 import { GeoloniaMap } from '@geolonia/embed-react'
 import type { Map } from '@geolonia/embed';
+import * as turf from '@turf/turf'
+import { toSvg } from './lib';
 
 const sourceId = 'bbox2svg__bbox-polygon-draft'
 const lineLayerId = 'bbox2svg__bbox-polygon-draft-layer-line'
 const fillLayerId = 'bbox2svg__bbox-polygon-draft-layer-fill'
 
 function App() {
-
   const onLoadCallback = useCallback((map: Map) => {
     let point1: number[] | null = null
     let point2: number[] | null = null
@@ -30,6 +31,7 @@ function App() {
         }
       } else {
         point2 = point
+        if(point1 && point2 && point1[0] === point2[0] && point1[1] === point2[1]) return
         map.addLayer({
           id: fillLayerId,
           source: sourceId,
@@ -39,11 +41,25 @@ function App() {
             'fill-opacity': .2,
           }
         })
+        // clip and downloading
         // @ts-ignore
         const mask = map.getSource(sourceId)?.serialize().data.features[0]
-        const features = map.queryRenderedFeatures(mask.geometry)
-        features.push(mask)
-        console.log(features)
+        const features = map.queryRenderedFeatures(mask.geometry).map(feature => {
+          if(feature.geometry.type === 'Point') {
+            return feature
+          } else {
+            // @ts-ignore
+            return turf.bboxClip(feature, mask)
+          }
+        })
+        const svgString = toSvg(map, features, mask)
+        const url = URL.createObjectURL(new Blob([svgString],{ type: 'image/svg+xml' }))
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.setAttribute('target', '_blank')
+        anchor.click()
+        anchor.remove()
+        URL.revokeObjectURL(url)
       }
     })
     map.on('mousemove', (e) => {
@@ -96,7 +112,7 @@ function App() {
 
   return (
     <div className="App">
-      <GeoloniaMap onLoad={ onLoadCallback } style={{ width: '100%', height: '100%' }}></GeoloniaMap>
+      <GeoloniaMap hash="on" onLoad={ onLoadCallback } style={{ width: '100%', height: '100%' }}></GeoloniaMap>
     </div>
   );
 }
