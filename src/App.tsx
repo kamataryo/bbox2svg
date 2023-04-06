@@ -46,17 +46,34 @@ function App() {
         const mask = map.getSource(sourceId)?.serialize().data.features[0]
         const features = map.queryRenderedFeatures(mask.geometry).map(feature => {
           if(feature.geometry.type === 'Point') {
-            return feature
+            if(turf.inside(feature.geometry, mask)) {
+              feature.properties.layer = feature.layer
+              return feature
+            } else {
+              return null
+            }
           } else {
             // @ts-ignore
-            return turf.bboxClip(feature, mask)
+            const clipped = turf.bboxClip(feature, mask)
+            // @ts-ignore
+            clipped.properties.layer = feature.layer
+            return clipped
           }
+        }).filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
+
+        const layerIds = map.getStyle().layers.map(l => l.id)
+        features.sort((fa, fb) => {
+          console.log(layerIds.indexOf(fa.properties.layer.id), layerIds.indexOf(fb.properties.layer.id))
+          return layerIds.indexOf(fa.properties.layer.id) - layerIds.indexOf(fb.properties.layer.id)
         })
+
         const svgString = toSvg(map, features, mask)
         const url = URL.createObjectURL(new Blob([svgString],{ type: 'image/svg+xml' }))
         const anchor = document.createElement('a')
         anchor.href = url
         anchor.setAttribute('target', '_blank')
+        anchor.click()
+        anchor.setAttribute('download', 'map')
         anchor.click()
         anchor.remove()
         URL.revokeObjectURL(url)
