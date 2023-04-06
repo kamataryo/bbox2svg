@@ -48,8 +48,8 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
   const xDiff = maxX - minX
   const yDiff = maxY - minY
   const viewBox = `${minX} ${minY} ${xDiff} ${yDiff}`
-  let width = Math.abs((upLeftTop.x - upRightTop.x) + (upLeftBottom.x - upRightBottom.x)) / 2
-  let height = Math.abs((upLeftTop.y - upLeftBottom.y) + (upRightTop.y - upRightBottom.y)) / 2
+  const width = Math.abs((upLeftTop.x - upRightTop.x) + (upLeftBottom.x - upRightBottom.x)) / 2
+  const height = Math.abs((upLeftTop.y - upLeftBottom.y) + (upRightTop.y - upRightBottom.y)) / 2
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute('xmlns', svgNS)
   svg.setAttributeNS(svgNS, 'viewBox', viewBox)
@@ -59,23 +59,24 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
   for (const { geometry, properties } of features) {
     const { type } = geometry
     const { id: layerId, paint, layout, type: layerType } = properties.layer
-    console.log(type, layerType)
+    // console.log(type, layerType)
     switch (type) {
       case 'Point':
       case 'MultiPoint':
       {
         const coordinatesList = Array.isArray(geometry.coordinates[0]) ? geometry.coordinates.flat() : [geometry.coordinates]
         for (const coordinates of coordinatesList) {
-          let { x, y } = map.project(coordinates as [number, number]);
+          const { x, y } = map.project(coordinates as [number, number]);
           const textField = layout['text-field'].toString()
           if(textField) {
             const fill = paint['text-color'].toString()
             const textSize = layout['text-size']
+
             const text = document.createElementNS(svgNS, 'text');
             text.setAttributeNS(svgNS, 'x', x.toString())
             text.setAttributeNS(svgNS, 'y', y.toString())
             text.setAttributeNS(svgNS, 'fill', fill)
-            text.setAttributeNS(svgNS, 'text-size', textSize)
+            text.setAttributeNS(svgNS, 'font-size', textSize)
             text.textContent = textField
             svg.append(text)
           } else {
@@ -90,43 +91,47 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
         break;
       }
       case 'LineString':
-      case 'MultiLineString':
+      // case 'MultiLineString':
       {
-        const stroke = paint['line-color']
-        if(stroke) {
+        const lineColor = paint['line-color']
+        if(lineColor) {
           const coordinates = Array.isArray(geometry.coordinates[0][0]) ? geometry.coordinates.flat() : geometry.coordinates
-          const path = document.createElementNS(svgNS, 'path')
           const d = coordinates.map((position, index) => {
             const command = index === 0 ? 'M' : 'L'
             const { x, y } = map.project(position as [number, number])
             return `${command} ${x},${y}`
           }).join(' ')
-          const strokeWidth = paint['line-width']
+          const lineWidth = paint['line-width']
+          const lineOpacity = paint['line-opacity'] || 1
+          const lineDasharray = paint['line-dasharray']
+
+          const path = document.createElementNS(svgNS, 'path')
           path.setAttributeNS(svgNS, 'class', 'linestring')
           path.setAttributeNS(svgNS, 'd', d)
-          path.setAttributeNS(svgNS, 'stroke', stroke)
-          path.setAttributeNS(svgNS, 'stroke-width', strokeWidth)
+          path.setAttributeNS(svgNS, 'stroke', lineColor)
+          path.setAttributeNS(svgNS, 'stroke-width', lineWidth)
+          path.setAttributeNS(svgNS, 'stroke-opacity', lineOpacity.toString())
+          path.setAttributeNS(svgNS, 'stroke-dasharray', lineDasharray && [...lineDasharray.from, ...lineDasharray.to].join(' '))
           path.setAttributeNS(svgNS, 'fill', 'none')
           svg.append(path)
         }
         break;
       }
-      case 'MultiPolygon':
       case 'Polygon':
+      case 'MultiPolygon':
       {
         const fill = paint['fill-color']
         if(fill) {
           const coordinates = Array.isArray(geometry.coordinates[0][0][0]) ? geometry.coordinates.flat() : geometry.coordinates
-          const path = document.createElementNS(svgNS, 'path')
-          const d = coordinates.flat().map((position, index) => {
-            const command = index === 0 ? 'M' : 'L'
+          const points = coordinates.flat().map((position) => {
             const { x, y } = map.project(position as [number, number])
-            return `${command} ${x},${y}`
+            return `${x},${y}`
           }).join(' ')
-          path.setAttributeNS(svgNS, 'class', ['polygon', layerId].join(' '))
-          path.setAttributeNS(svgNS, 'd', d)
-          fill && path.setAttributeNS(svgNS, 'fill', fill.toString())
-          svg.append(path)
+          const polygon = document.createElementNS(svgNS, 'polygon')
+          polygon.setAttributeNS(svgNS, 'class', ['polygon', layerId].join(' '))
+          polygon.setAttributeNS(svgNS, 'points', points)
+          polygon.setAttributeNS(svgNS, 'fill', fill.toString())
+          svg.append(polygon)
         }
         break
       }
