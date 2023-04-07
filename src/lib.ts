@@ -58,7 +58,7 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
 
   for (const { geometry, properties } of features) {
     const { type } = geometry
-    const { id: layerId, paint, layout, type: layerType } = properties.layer
+    const { id: layerId, paint, layout } = properties.layer
     // console.log(type, layerType)
     switch (type) {
       case 'Point':
