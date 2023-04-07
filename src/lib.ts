@@ -142,17 +142,3 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
 
   return `<?xml version="1.0"?>\n${svg.outerHTML}`
 }
-
-export const download = (svgString: string, inNewTab?: 'in-new-tab') => {
-  const url = URL.createObjectURL(new Blob([svgString],{ type: 'image/svg+xml' }))
-  const anchor = document.createElement('a')
-  anchor.href = url
-  if(inNewTab) {
-    anchor.setAttribute('target', '_blank')
-  } else {
-    anchor.setAttribute('download', 'map')
-  }
-  anchor.click()
-  anchor.remove()
-  URL.revokeObjectURL(url)
-}
