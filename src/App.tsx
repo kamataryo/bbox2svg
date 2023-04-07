@@ -78,6 +78,7 @@ function App() {
             <li><a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href="https://github.com/kamataryo/bbox2svg/pulls">{'改善提案（プルリクエスト）'}</a></li>
             <li>今後対応するかもしれない機能 (TODO)
               <ul className={'ml-4 list-decimal'}>
+                <li className="italic">クリッピングが不完全で不要なレイヤーが大量に含まれるので削除する</li>
                 <li className="italic">background レイヤーの追加</li>
                 <li className="italic">ラスターレイヤーの追加</li>
                 <li className="italic">ライセンス表示の自動生成</li>
