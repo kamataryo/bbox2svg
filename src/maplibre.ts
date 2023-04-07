@@ -1,13 +1,26 @@
 import type { Map } from '@geolonia/embed';
 
-const sourceId = 'bbox2svg__bbox-polygon-draft'
+export const bboxSourceId = 'bbox2svg__bbox-polygon-draft'
 const lineLayerId = 'bbox2svg__bbox-polygon-draft-layer-line'
 const fillLayerId = 'bbox2svg__bbox-polygon-draft-layer-fill'
 
 let point1: number[] | null = null
 let point2: number[] | null = null
 
-export const selectPoint1 = (map: Map, point: number[], downloadCallback: (sourceId: string) => void) => {
+export const unselectPoints = (map: Map) => {
+  const lineLayer = map.getLayer(lineLayerId)
+  const fillLayer = map.getLayer(fillLayerId)
+  if(fillLayer) {
+    map.removeLayer(fillLayerId)
+  }
+  if(lineLayer) {
+    map.removeLayer(lineLayerId)
+  }
+  point1 = null
+  point2 = null
+}
+
+export const selectPoint1 = (map: Map, point: number[], downloadCallback: () => void) => {
   const lineLayer = map.getLayer(lineLayerId)
   const fillLayer = map.getLayer(fillLayerId)
   if(
@@ -29,14 +42,14 @@ export const selectPoint1 = (map: Map, point: number[], downloadCallback: (sourc
 
     map.addLayer({
       id: fillLayerId,
-      source: sourceId,
+      source: bboxSourceId,
       type: 'fill',
       paint: {
         'fill-color': "red",
         'fill-opacity': .2,
       }
     })
-    downloadCallback(sourceId)
+    downloadCallback()
   }
 }
 
@@ -61,10 +74,10 @@ export const moveToPoint2 = (map: Map, cursor: number[]) => {
     ],
   }
 
-  const source = map.getSource(sourceId)
+  const source = map.getSource(bboxSourceId)
   const lineLayer = map.getLayer(lineLayerId)
   if(!source) {
-    map.addSource(sourceId, { type: 'geojson', data: geojson })
+    map.addSource(bboxSourceId, { type: 'geojson', data: geojson })
   } else if(!point2) {
     // @ts-ignore
     source.setData(geojson)
@@ -73,7 +86,7 @@ export const moveToPoint2 = (map: Map, cursor: number[]) => {
   if(!lineLayer) {
     map.addLayer({
       id: lineLayerId,
-      source: sourceId,
+      source: bboxSourceId,
       type: 'line',
       paint: {
         'line-color': 'red',
