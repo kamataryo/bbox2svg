@@ -3,6 +3,7 @@
   "description": "bbox2svgは地図からSVG形式の画像を簡単に生成できるウェブアプリです。デザインやウェブ開発で便利にご利用いただけます。",
   "version": "0.1.0",
   "homepage": "https://kamataryo.github.io/bbox2svg",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "@geolonia/embed-react": "^1.2.1",
