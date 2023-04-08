@@ -20,7 +20,7 @@ export const unselectPoints = (map: Map) => {
   point2 = null
 }
 
-export const selectPoint1 = (map: Map, point: number[], downloadCallback: () => void) => {
+export const selectOneOfThePoints = (map: Map, point: number[], point2SelectionCallback: () => void) => {
   const lineLayer = map.getLayer(lineLayerId)
   const fillLayer = map.getLayer(fillLayerId)
   if(
@@ -49,7 +49,7 @@ export const selectPoint1 = (map: Map, point: number[], downloadCallback: () => 
         'fill-opacity': .2,
       }
     })
-    downloadCallback()
+    point2SelectionCallback()
   }
 }
 

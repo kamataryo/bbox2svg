@@ -3,7 +3,8 @@ import React, { useState, useCallback, useRef } from 'react';
 import { GeoloniaMap } from '@geolonia/embed-react'
 import Modal from 'react-modal'
 import { toByteLabel, toFeatures, toSvg } from './lib';
-import { moveToPoint2, selectPoint1, bboxSourceId, unselectPoints } from './maplibre';
+import { moveToPoint2, selectOneOfThePoints, bboxSourceId, unselectPoints } from './maplibre';
+import * as turf from '@turf/turf'
 
 import type { Map } from '@geolonia/embed';
 
@@ -33,23 +34,24 @@ const modalStyleOverlay = {
 
 function App() {
 
-  const [svgStat, setSvgStat] = useState<null | { url: string, size: number }>(null)
+  const [svgStat, setSvgStat] = useState<null | { url: string, size: number, width: number, height: number, count: number, bbox: turf.helpers.BBox }>(null)
   const mapRef = useRef<Map>(null)
 
 
   const onLoadCallback = useCallback((map: Map) => {
     map.on('click', (e) => {
       const point = [e.lngLat.lng, e.lngLat.lat]
-      selectPoint1(map, point, () => {
+      selectOneOfThePoints(map, point, () => {
         const source = map.getSource(bboxSourceId)
         if(source) {
           const mask = source.serialize().data.features[0]
+          const bbox = turf.bbox(mask)
           const features = toFeatures(map, mask)
-          const svgString = toSvg(map, features, mask)
+          const { xml: svgString, width, height } = toSvg(map, features, mask)
           const blob = new Blob([svgString],{ type: 'image/svg+xml' })
           const url = URL.createObjectURL(blob)
           const size = blob.size
-          setSvgStat({ url, size })
+          setSvgStat({ url, size, width, height, count: features.length, bbox })
         }
       })
     })
@@ -99,11 +101,34 @@ function App() {
         </button>
         { svgStat && <>
           <a title="SVG を別タブで開く" href={svgStat.url} target={'_blank'} rel="noreferrer">
-            <img className="mt-4 h-auto w-full rounded-lg border border-sky-500" src={svgStat.url} alt="description" />
+            <img className="mt-6 h-auto w-full rounded-lg border border-sky-500" src={svgStat.url} alt="description" />
           </a>
-          <p className={'m-2'}>
-            {`ファイルサイズ: ${toByteLabel(svgStat.size)}`}
-          </p>
+          <table className='m-2 text-sm text-left'>
+            <tbody>
+              <tr>
+                <th scope='col' className='p4 pr-2'>ファイルサイズ</th><td>{toByteLabel(svgStat.size)}</td>
+              </tr>
+              <tr>
+                <th scope='col' className='p4 pr-2'>地物数</th><td>{svgStat.count}</td>
+              </tr>
+              <tr>
+                <th scope='col' className='p4 pr-2'>画像サイズ</th><td>{`${Math.round(svgStat.width)} x ${Math.round(svgStat.height)}`}</td>
+              </tr>
+              {/* <tr>
+                <th>西端</th><td>{svgStat.bbox[0]}</td>
+              </tr>
+              <tr>
+                <th>南端</th><td>{svgStat.bbox[1]}</td>
+              </tr>
+              <tr>
+                <th>東端</th><td>{svgStat.bbox[2]}</td>
+              </tr>
+              <tr>
+                <th>北端</th><td>{svgStat.bbox[3]}</td>
+              </tr> */}
+
+            </tbody>
+          </table>
           <p>
             <a className={'mt-2 underline text-blue-600 hover:text-blue-800 visited:text-purple-600'} href={svgStat.url} download={'map'}>
               {'SVG 形式でダウンロード'}
@@ -117,7 +142,7 @@ function App() {
             <a className={'ml-4 underline text-blue-600 hover:text-blue-800 visited:text-purple-600'} href={svgStat.url} target={'_blank'} rel="noreferrer">
               {'SVG ファイルを別タブで開く'}
             </a>
-            <svg className="inline ml-0.5 h-5 w-5 text-gray-400"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">
+            <svg className="inline ml-0.5 h-5 w-5 text-gray-400"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  strokeWidth="2"  strokeLinecap="round"  strokeLinejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
               <polyline points="15 3 21 3 21 9" />
               <line x1="10" y1="14" x2="21" y2="3" />

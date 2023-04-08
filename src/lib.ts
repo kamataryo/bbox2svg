@@ -93,7 +93,6 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
             const textField = layout['text-field'].toString()
 
             if(textField) {
-              console.log(paint)
               const fill = paint['text-color'].toString()
               const textSize = layout['text-size']
               const textAnchor = layout['text-anchor'] as string
@@ -186,7 +185,7 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
       }
       default:
       {
-        console.log(type)
+        console.warn(`Unhandled feature type: ${type}`)
         break;
       }
     }
@@ -204,7 +203,7 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
     }
   }
 
-  return `<?xml version="1.0"?>\n${svg.outerHTML}`
+  return { xml: `<?xml version="1.0"?>\n${svg.outerHTML}`, width, height}
 }
 
 export const toByteLabel = (byte: number) => {
