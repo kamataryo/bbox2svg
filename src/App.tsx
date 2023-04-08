@@ -41,13 +41,13 @@ function App() {
   const onLoadCallback = useCallback((map: Map) => {
     map.on('click', (e) => {
       const point = [e.lngLat.lng, e.lngLat.lat]
-      selectOneOfThePoints(map, point, () => {
+      selectOneOfThePoints(map, point, async () => {
         const source = map.getSource(bboxSourceId)
         if(source) {
           const mask = source.serialize().data.features[0]
           const bbox = turf.bbox(mask)
           const features = toFeatures(map, bbox)
-          const { xml: svgString, width, height } = toSvg(map, features, bbox)
+          const { xml: svgString, width, height } = await toSvg(map, features, bbox)
           const blob = new Blob([svgString],{ type: 'image/svg+xml' })
           const url = URL.createObjectURL(blob)
           const size = blob.size

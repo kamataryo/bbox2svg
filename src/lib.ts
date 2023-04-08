@@ -13,6 +13,43 @@ const svgTextAnchor: { [key: string]: string } = {
   right: 'right',
 }
 
+let spriteContainer: {
+  imageURL: string,
+  locationMap: { [name: string]: { width: number, height: number, x: number, y: number, pixelRatio: number } },
+  image: HTMLImageElement,
+} | null = null
+
+const loadSprite = async (name: string, url: string) => {
+  if(!spriteContainer) {
+    // TODO: @2x に対応する
+    const [locationMap, spritePng] = await Promise.all([
+      fetch(`${url}.json`).then(resp => resp.json()),
+      fetch(`${url}.png`).then(resp => resp.blob()),
+    ])
+    const imageURL = URL.createObjectURL(spritePng)
+    const image = new Image()
+    image.src = imageURL
+    await new Promise(resolve => image.onload = resolve)
+    spriteContainer = { imageURL , locationMap, image }
+  }
+
+  const { image, locationMap } = spriteContainer
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+
+  const targetSpriteLocation = locationMap[name]
+  if(!targetSpriteLocation) {
+    return null
+  }
+  const { width, height, x, y } = targetSpriteLocation
+  canvas.width = width
+  canvas.height = height
+  ctx.drawImage(image, x, y, width, height, 0, 0, width, height)
+  const dataURL = canvas.toDataURL()
+  canvas.remove()
+  return { dataURL, width, height }
+}
+
 export const toFeatures = (map: Map, bbox: turf.helpers.BBox) => {
   const bboxPolygon = turf.bboxPolygon(bbox)
   const features = map.queryRenderedFeatures([
@@ -52,7 +89,7 @@ export const toFeatures = (map: Map, bbox: turf.helpers.BBox) => {
   return features
 }
 
-export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[], bbox: turf.helpers.BBox) => {
+export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[], bbox: turf.helpers.BBox) => {
   const [left, bottom, right, top] = bbox
   const upLeftTop = map.project([left, top])
   const upRightTop = map.project([right, top])
@@ -73,6 +110,8 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
   svg.setAttributeNS(svgNS, 'width', width.toString())
   svg.setAttributeNS(svgNS, 'height', height.toString())
 
+  const spriteURL = map.getStyle().sprite
+
   const layerGroupBuffer: { [layerId: string]: SVGElement[] } = {}
 
   for (const { geometry, properties } of features) {
@@ -90,27 +129,40 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
           const { x, y } = map.project(coordinates as [number, number]);
 
           if(layerType === 'symbol') {
-            console.log(layout, paint)
+            const iconImage = layout['icon-image']
             const textField = layout['text-field']
+            const textOffset = layout['text-offset'] || [0, 0]
             const textHaloWidth = paint['text-halo-width']
             const textSize = layout['text-size']
             const textAnchor = layout['text-anchor'] as string
             const textFont = Array.isArray(layout['text-font']) ? layout['text-font'][0] : layout['text-font']
-            let textGroup: SVGGElement | null = null
+            const textGroup: SVGGElement = document.createElementNS(svgNS, 'g')
+
+            if(iconImage && spriteURL) {
+              const sprite = await loadSprite(iconImage, spriteURL)
+              if(sprite) {
+                const { dataURL, width, height } = sprite
+                const image = document.createElementNS(svgNS, 'image');
+                image.setAttributeNS(svgNS, 'href', dataURL)
+                image.setAttributeNS(svgNS, 'x', (x - width / 2).toString()) // NOTE: なぜこれで位置が合うのか分からない
+                image.setAttributeNS(svgNS, 'y', (y - height).toString())
+                image.setAttributeNS(svgNS, 'width', width.toString())
+                image.setAttributeNS(svgNS, 'height', height.toString())
+                textGroup.append(image)
+              }
+            }
 
             if(textField && textHaloWidth > 0) {
               const textHalloColor = paint['text-halo-color']
               const textHallo = document.createElementNS(svgNS, 'text');
-              textGroup = document.createElementNS(svgNS, 'g')
-
               textHallo.setAttributeNS(svgNS, 'aria-hidden', 'true')
-              textHallo.setAttributeNS(svgNS, 'x', x.toString())
-              textHallo.setAttributeNS(svgNS, 'y', y.toString())
+              textHallo.setAttributeNS(svgNS, 'x', (x + textOffset[0] * textSize).toString())
+              textHallo.setAttributeNS(svgNS, 'y', (y + textOffset[1] * textSize).toString())
               textHallo.setAttributeNS(svgNS, 'fill', textHalloColor.toString())
               textHallo.setAttributeNS(svgNS, 'font-size', textSize.toString())
               textHallo.setAttributeNS(svgNS, 'stroke', textHalloColor.toString())
               textHallo.setAttributeNS(svgNS, 'stroke-width', (textHaloWidth * 2).toString())
-              textHallo.setAttributeNS(svgNS, 'text-anchor', svgTextAnchor[textAnchor])
+              textHallo.setAttributeNS(svgNS, 'text-anchor', svgTextAnchor[textAnchor]) // offset との組み合わせでうまく動いているのか？
               textFont && textHallo.setAttributeNS(svgNS, 'font-family', textFont)
               textHallo.textContent = textField.toString()
               textGroup.append(textHallo)
@@ -119,20 +171,16 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
             if(textField) {
               const fill = paint['text-color']
               const text = document.createElementNS(svgNS, 'text');
-              text.setAttributeNS(svgNS, 'x', x.toString())
-              text.setAttributeNS(svgNS, 'y', y.toString())
+              text.setAttributeNS(svgNS, 'x', (x + textOffset[0] * textSize).toString())
+              text.setAttributeNS(svgNS, 'y', (y + textOffset[1] * textSize).toString())
               text.setAttributeNS(svgNS, 'fill', fill.toString())
               text.setAttributeNS(svgNS, 'font-size', textSize.toString())
-              text.setAttributeNS(svgNS, 'text-anchor', svgTextAnchor[textAnchor])
+              text.setAttributeNS(svgNS, 'text-anchor', svgTextAnchor[textAnchor]) // offset との組み合わせでうまく動いているのか？
               textFont && text.setAttributeNS(svgNS, 'font-family', textFont)
               text.textContent = textField.toString()
 
-              if(textGroup) {
-                textGroup.append(text)
-                layerGroupBuffer[layerId].push(textGroup)
-              } else {
-                layerGroupBuffer[layerId].push(text)
-              }
+              textGroup.append(text)
+              layerGroupBuffer[layerId].push(textGroup)
             }
           } else if (layerType === 'circle') {
             const circle = document.createElementNS(svgNS, "circle");
