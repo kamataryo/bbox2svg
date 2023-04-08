@@ -136,10 +136,13 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
             }
           } else if (layerType === 'circle') {
             const circle = document.createElementNS(svgNS, "circle");
+            const circleRadius = paint['circle-radius']
+            const circleColor = paint['circle-color']
+
             circle.setAttributeNS(svgNS, 'cx', x.toString())
             circle.setAttributeNS(svgNS, 'cy', y.toString())
-            circle.setAttributeNS(svgNS, 'r', '5')
-            circle.setAttributeNS(svgNS, 'fill', 'red')
+            circle.setAttributeNS(svgNS, 'r', circleRadius.toString())
+            circle.setAttributeNS(svgNS, 'fill', circleColor.toString())
             layerGroupBuffer[layerId].push(circle)
           }
         }
