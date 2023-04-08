@@ -90,22 +90,49 @@ export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { la
           const { x, y } = map.project(coordinates as [number, number]);
 
           if(layerType === 'symbol') {
-            const textField = layout['text-field'].toString()
+            console.log(layout, paint)
+            const textField = layout['text-field']
+            const textHaloWidth = paint['text-halo-width']
+            const textSize = layout['text-size']
+            const textAnchor = layout['text-anchor'] as string
+            const textFont = Array.isArray(layout['text-font']) ? layout['text-font'][0] : layout['text-font']
+            let textGroup: SVGGElement | null = null
+
+            if(textField && textHaloWidth > 0) {
+              const textHalloColor = paint['text-halo-color']
+              const textHallo = document.createElementNS(svgNS, 'text');
+              textGroup = document.createElementNS(svgNS, 'g')
+
+              textHallo.setAttributeNS(svgNS, 'aria-hidden', 'true')
+              textHallo.setAttributeNS(svgNS, 'x', x.toString())
+              textHallo.setAttributeNS(svgNS, 'y', y.toString())
+              textHallo.setAttributeNS(svgNS, 'fill', textHalloColor.toString())
+              textHallo.setAttributeNS(svgNS, 'font-size', textSize.toString())
+              textHallo.setAttributeNS(svgNS, 'stroke', textHalloColor.toString())
+              textHallo.setAttributeNS(svgNS, 'stroke-width', (textHaloWidth * 2).toString())
+              textHallo.setAttributeNS(svgNS, 'text-anchor', svgTextAnchor[textAnchor])
+              textFont && textHallo.setAttributeNS(svgNS, 'font-family', textFont)
+              textHallo.textContent = textField.toString()
+              textGroup.append(textHallo)
+            }
 
             if(textField) {
-              const fill = paint['text-color'].toString()
-              const textSize = layout['text-size']
-              const textAnchor = layout['text-anchor'] as string
-              const textFont = Array.isArray(layout['text-font']) ? layout['text-font'][0] : layout['text-font']
+              const fill = paint['text-color']
               const text = document.createElementNS(svgNS, 'text');
               text.setAttributeNS(svgNS, 'x', x.toString())
               text.setAttributeNS(svgNS, 'y', y.toString())
-              text.setAttributeNS(svgNS, 'fill', fill)
-              text.setAttributeNS(svgNS, 'font-size', textSize)
+              text.setAttributeNS(svgNS, 'fill', fill.toString())
+              text.setAttributeNS(svgNS, 'font-size', textSize.toString())
               text.setAttributeNS(svgNS, 'text-anchor', svgTextAnchor[textAnchor])
               textFont && text.setAttributeNS(svgNS, 'font-family', textFont)
-              text.textContent = textField
-              layerGroupBuffer[layerId].push(text)
+              text.textContent = textField.toString()
+
+              if(textGroup) {
+                textGroup.append(text)
+                layerGroupBuffer[layerId].push(textGroup)
+              } else {
+                layerGroupBuffer[layerId].push(text)
+              }
             }
           } else if (layerType === 'circle') {
             const circle = document.createElementNS(svgNS, "circle");
