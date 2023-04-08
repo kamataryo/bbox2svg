@@ -46,8 +46,8 @@ function App() {
         if(source) {
           const mask = source.serialize().data.features[0]
           const bbox = turf.bbox(mask)
-          const features = toFeatures(map, mask)
-          const { xml: svgString, width, height } = toSvg(map, features, mask)
+          const features = toFeatures(map, bbox)
+          const { xml: svgString, width, height } = toSvg(map, features, bbox)
           const blob = new Blob([svgString],{ type: 'image/svg+xml' })
           const url = URL.createObjectURL(blob)
           const size = blob.size
@@ -160,7 +160,6 @@ function App() {
             <li>今後対応するかもしれない機能 (TODO)
               <ul className={'ml-4 list-decimal'}>
                 <li className="italic">ズーム10以下で島が消える</li>
-                <li className="italic">クリッピングがうまくいってない</li>
                 <li className="italic">background レイヤーの追加</li>
                 <li className="italic">ライセンス表示の自動生成</li>
               </ul>

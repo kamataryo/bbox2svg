@@ -2,6 +2,8 @@
 import type { Map } from '@geolonia/embed';
 import type GeoJSON from 'geojson'
 import * as turf from '@turf/turf'
+// @ts-ignore
+import rewind from '@mapbox/geojson-rewind'
 
 const svgNS = "http://www.w3.org/2000/svg"
 const svgTextAnchor: { [key: string]: string } = {
@@ -11,28 +13,31 @@ const svgTextAnchor: { [key: string]: string } = {
   right: 'right',
 }
 
-export const toFeatures = (map: Map, mask: GeoJSON.Feature<GeoJSON.Polygon>) => {
-  const features = map.queryRenderedFeatures(mask.geometry as any).map(feature => {
+export const toFeatures = (map: Map, bbox: turf.helpers.BBox) => {
+  const bboxPolygon = turf.bboxPolygon(bbox)
+  const features = map.queryRenderedFeatures([
+    map.project([bbox[0], bbox[1]]),
+    map.project([bbox[2], bbox[3]])]).map(renderedFeature => {
+    const feature = rewind(renderedFeature.toJSON())
+    feature.properties.layer = renderedFeature.layer
+
     if(feature.geometry.type === 'Point') {
-      if(turf.inside(feature.geometry, mask)) {
-        feature.properties.layer = feature.layer
-        return feature
+      if(turf.inside(feature.geometry, bboxPolygon)) {
+        return feature as GeoJSON.Feature<GeoJSON.Point>
       } else {
         return null
       }
     } else {
-      feature.properties.layer = feature.layer
-      // うまくクリップできてない時がある。できないより全部返す方がマシ
-      if(feature.geometry.type === 'MultiPolygon') {
-        return feature
-      }
       const clipped = turf.bboxClip(
         // @ts-ignore
         feature.geometry,
-        turf.bbox(mask.geometry),
+        bbox,
       )
+       if(clipped.geometry.type === 'MultiPolygon') {
+        clipped.geometry.coordinates = clipped.geometry.coordinates.filter(x => x.length > 0)
+       }
       // @ts-ignore
-      clipped.properties.layer = feature.layer
+      clipped.properties.layer = feature.properties.layer
       return clipped
     }
   }).filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
@@ -47,13 +52,8 @@ export const toFeatures = (map: Map, mask: GeoJSON.Feature<GeoJSON.Polygon>) => 
   return features
 }
 
-export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[], bbox: GeoJSON.Feature<GeoJSON.Polygon>) => {
-  const xValues = bbox.geometry.coordinates[0].map(point => point[0])
-  const yValues = bbox.geometry.coordinates[0].map(point => point[1])
-  const left = Math.min(...xValues)
-  const right = Math.max(...xValues)
-  const top = Math.max(...yValues)
-  const bottom = Math.min(...yValues)
+export const toSvg = (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[], bbox: turf.helpers.BBox) => {
+  const [left, bottom, right, top] = bbox
   const upLeftTop = map.project([left, top])
   const upRightTop = map.project([right, top])
   const upLeftBottom = map.project([left, bottom])
