@@ -121,21 +121,26 @@ export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
   return features
 }
 
-export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[], bbox: turf.helpers.BBox) => {
+export const toSvg = async (
+  map: Map,
+  features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[],
+  bbox: turf.helpers.BBox,
+  attribution?: string,
+) => {
   const [left, bottom, right, top] = bbox
-  const upLeftTop = map.project([left, top])
-  const upRightTop = map.project([right, top])
-  const upLeftBottom = map.project([left, bottom])
-  const upRightBottom = map.project([right, bottom])
-  const minX = Math.min(upLeftTop.x, upRightTop.x, upLeftBottom.x, upRightBottom.x)
-  const maxX = Math.max(upLeftTop.x, upRightTop.x, upLeftBottom.x, upRightBottom.x)
-  const minY = Math.min(upLeftTop.y, upRightTop.y, upLeftBottom.y, upRightBottom.y)
-  const maxY = Math.max(upLeftTop.y, upRightTop.y, upLeftBottom.y, upRightBottom.y)
+  const projectedLeftTop = map.project([left, top])
+  const projectedRightTop = map.project([right, top])
+  const projectedLeftBottom = map.project([left, bottom])
+  const projectedRightBottom = map.project([right, bottom])
+  const minX = Math.min(projectedLeftTop.x, projectedRightTop.x, projectedLeftBottom.x, projectedRightBottom.x)
+  const maxX = Math.max(projectedLeftTop.x, projectedRightTop.x, projectedLeftBottom.x, projectedRightBottom.x)
+  const minY = Math.min(projectedLeftTop.y, projectedRightTop.y, projectedLeftBottom.y, projectedRightBottom.y)
+  const maxY = Math.max(projectedLeftTop.y, projectedRightTop.y, projectedLeftBottom.y, projectedRightBottom.y)
   const xDiff = maxX - minX
   const yDiff = maxY - minY
   const viewBox = `${minX} ${minY} ${xDiff} ${yDiff}`
-  const width = Math.abs((upLeftTop.x - upRightTop.x) + (upLeftBottom.x - upRightBottom.x)) / 2
-  const height = Math.abs((upLeftTop.y - upLeftBottom.y) + (upRightTop.y - upRightBottom.y)) / 2
+  const width = Math.abs((projectedLeftTop.x - projectedRightTop.x) + (projectedLeftBottom.x - projectedRightBottom.x)) / 2
+  const height = Math.abs((projectedLeftTop.y - projectedLeftBottom.y) + (projectedRightTop.y - projectedRightBottom.y)) / 2
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute('xmlns', svgNS)
   svg.setAttributeNS(svgNS, 'viewBox', viewBox)
@@ -346,6 +351,18 @@ export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry
       }
       svg.append(g)
     }
+  }
+
+  if(attribution) {
+    const text = document.createElementNS(svgNS, 'text')
+    text.setAttributeNS(svgNS, 'x', (projectedRightBottom.x - 6).toString())
+    text.setAttributeNS(svgNS, 'y', (projectedRightBottom.y - 6).toString())
+    text.setAttributeNS(svgNS, 'fill', 'black')
+    text.setAttributeNS(svgNS, 'font-size', '12')
+    text.setAttributeNS(svgNS, 'text-anchor', 'end')
+    text.setAttributeNS(svgNS, 'id', 'attribution')
+    text.textContent = attribution
+    svg.append(text)
   }
 
   return { xml: `<?xml version="1.0"?>\n${svg.outerHTML}`, width, height}

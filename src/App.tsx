@@ -40,15 +40,32 @@ function App() {
 
 
   const onLoadCallback = useCallback((map: Map) => {
+
+    map.on('style.load', () => {
+      const unavaillableLayers = map.getStyle().layers.filter(
+        layer => (
+          layer.type === 'fill-extrusion' ||
+          layer.type === 'hillshade' ||
+          layer.type === 'heatmap' ||
+          layer.type === 'raster'
+        )
+      )
+      for (const layer of unavaillableLayers) {
+          map.removeLayer(layer.id)
+      }
+    })
+
     map.on('click', (e) => {
       const point = [e.lngLat.lng, e.lngLat.lat]
       selectOneOfThePoints(map, point, async () => {
         const source = map.getSource(bboxSourceId)
         if(source) {
+          const attributions = document.querySelector('.maplibregl-ctrl-attrib-inner')
+          console.log(attributions)
           const mask = source.serialize().data.features[0]
           const bbox = turf.bbox(mask)
           const features = await toFeatures(map, bbox)
-          const { xml: svgString, width, height } = await toSvg(map, features, bbox)
+          const { xml: svgString, width, height } = await toSvg(map, features, bbox, '©︎ Geolonia | ©︎ OpenStreetMap Contributors')
           const blob = new Blob([svgString],{ type: 'image/svg+xml' })
           const url = URL.createObjectURL(blob)
           const size = blob.size
@@ -155,14 +172,8 @@ function App() {
           <h4>メモ</h4>
           <ul className={'ml-4 list-disc'}>
             <li><strong>{'データを利用する場合はライセンスの表示が必要です'}</strong></li>
-            <li>{'低ズームでの書き出しはきれいな結果が得られない場合があります'}</li>
             <li><a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href="https://github.com/kamataryo/bbox2svg/issues">{'バグ報告'}</a></li>
             <li><a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href="https://github.com/kamataryo/bbox2svg/pulls">{'改善提案（プルリクエスト）'}</a></li>
-            <li>今後対応するかもしれない機能 (TODO)
-              <ul className={'ml-4 list-decimal'}>
-                <li className="italic">ライセンス表示の自動生成</li>
-              </ul>
-            </li>
           </ul>
         </div>
       </Modal>
