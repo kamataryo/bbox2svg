@@ -96,3 +96,4 @@ export const moveToPoint2 = (map: Map, cursor: number[]) => {
     })
    }
 }
+

@@ -4,6 +4,7 @@ import type GeoJSON from 'geojson'
 import * as turf from '@turf/turf'
 // @ts-ignore
 import rewind from '@mapbox/geojson-rewind'
+import { bboxSourceId } from './maplibre';
 
 const svgNS = "http://www.w3.org/2000/svg"
 const svgTextAnchor: { [key: string]: string } = {
@@ -50,41 +51,70 @@ const loadSprite = async (name: string, url: string) => {
   return { dataURL, width, height }
 }
 
-export const toFeatures = (map: Map, bbox: turf.helpers.BBox) => {
+export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
   const bboxPolygon = turf.bboxPolygon(bbox)
+  const currentStyle = map.getStyle()
+  const backgroundLayer = currentStyle.layers.find(layer => layer.type === 'background')
+
+  const tmpBackgroundIdentifier = 'tmp__background2__' + Date.now()
+  if (backgroundLayer && backgroundLayer.paint) {
+    const backgroundLayerIndex = currentStyle.layers.map(l => l.id).indexOf(backgroundLayer.id)
+    map.addLayer({
+      id: tmpBackgroundIdentifier,
+      type: 'fill',
+      // @ts-ignore
+      source: {
+        type: 'geojson',
+        data: bboxPolygon,
+      },
+      paint: {
+        // @ts-ignore
+        'fill-color': backgroundLayer.paint['background-color'],
+      }
+    }, currentStyle.layers[backgroundLayerIndex + 1].id)
+    map.on('render', (e) => console.log('render', e))
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+
   const features = map.queryRenderedFeatures([
     map.project([bbox[0], bbox[1]]),
-    map.project([bbox[2], bbox[3]])]).map(renderedFeature => {
-    const feature = rewind(renderedFeature.toJSON())
-    feature.properties.layer = renderedFeature.layer
+    map.project([bbox[2], bbox[3]])
+  ])
+    .filter(feature => feature.layer.source !== bboxSourceId)
+    .filter(feature => feature.layer.id.startsWith('tmp__background2__') ? feature.layer.id === tmpBackgroundIdentifier : true)
+    .map(renderedFeature => {
+      const feature = rewind(renderedFeature.toJSON())
+      feature.properties.layer = renderedFeature.layer
 
-    if(feature.geometry.type === 'Point') {
-      if(turf.inside(feature.geometry, bboxPolygon)) {
-        return feature as GeoJSON.Feature<GeoJSON.Point>
+      if(feature.geometry.type === 'Point') {
+        if(turf.inside(feature.geometry, bboxPolygon)) {
+          return feature as GeoJSON.Feature<GeoJSON.Point>
+        } else {
+          return null
+        }
       } else {
-        return null
-      }
-    } else {
-      const clipped = turf.bboxClip(
+        const clipped = turf.bboxClip(
+          // @ts-ignore
+          feature.geometry,
+          bbox,
+        )
+        if(clipped.geometry.type === 'MultiPolygon') {
+          clipped.geometry.coordinates = clipped.geometry.coordinates.filter(x => x.length > 0)
+        }
         // @ts-ignore
-        feature.geometry,
-        bbox,
-      )
-       if(clipped.geometry.type === 'MultiPolygon') {
-        clipped.geometry.coordinates = clipped.geometry.coordinates.filter(x => x.length > 0)
-       }
-      // @ts-ignore
-      clipped.properties.layer = feature.properties.layer
-      return clipped
-    }
-  }).filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
+        clipped.properties.layer = feature.properties.layer
+        return clipped
+      }
+    })
+    .filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
 
   const layerIds = map.getStyle().layers.map(l => l.id)
   features.sort((fa, fb) => {
     return layerIds.indexOf(fa.properties.layer.id) - layerIds.indexOf(fb.properties.layer.id)
   })
 
-  // console.log(map.getPaintProperty('background', 'background-color'))
+    // NOTE: 消したいけど、非同期のタイミングがよく分からないため保留
+    // map.removeLayer(tmpBackgroundIdentifier)
 
   return features
 }
@@ -270,11 +300,13 @@ export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry
   }
 
   const layerIdSeq = map.getStyle().layers.map(layer => layer.id)
+  const backgroundLayer = map.getStyle().layers.find(layer => layer.type === 'background')
   for (const layerId of layerIdSeq) {
     if(layerGroupBuffer[layerId]) {
       const g = document.createElementNS(svgNS, 'g')
       for (const element of layerGroupBuffer[layerId]) {
-        g.setAttributeNS(svgNS, 'id', layerId)
+        const svgId = backgroundLayer && layerId.startsWith('tmp__background2__') ? backgroundLayer.id : layerId
+        g.setAttributeNS(svgNS, 'id', svgId)
         g.append(element)
       }
       svg.append(g)
