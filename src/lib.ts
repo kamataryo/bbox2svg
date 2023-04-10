@@ -22,11 +22,20 @@ let spriteContainer: {
 
 const loadSprite = async (name: string, url: string) => {
   if(!spriteContainer) {
-    // TODO: @2x に対応する
-    const [locationMap, spritePng] = await Promise.all([
-      fetch(`${url}.json`).then(resp => resp.json()),
-      fetch(`${url}.png`).then(resp => resp.blob()),
-    ])
+    let locationMap, spritePng
+    try {
+      [locationMap, spritePng] = await Promise.all([
+        fetch(`${url}@2x.json`).then(resp => resp.json()),
+        fetch(`${url}@2x.png`).then(resp => resp.blob()),
+      ])
+    } catch (error) {
+      console.error(error);
+      [locationMap, spritePng] = await Promise.all([
+        fetch(`${url}.json`).then(resp => resp.json()),
+        fetch(`${url}.png`).then(resp => resp.blob()),
+      ])
+    }
+
     const imageURL = URL.createObjectURL(spritePng)
     const image = new Image()
     image.src = imageURL
@@ -42,13 +51,13 @@ const loadSprite = async (name: string, url: string) => {
   if(!targetSpriteLocation) {
     return null
   }
-  const { width, height, x, y } = targetSpriteLocation
+  const { width, height, x, y, pixelRatio } = targetSpriteLocation
   canvas.width = width
   canvas.height = height
   ctx.drawImage(image, x, y, width, height, 0, 0, width, height)
   const dataURL = canvas.toDataURL()
   canvas.remove()
-  return { dataURL, width, height }
+  return { dataURL, width, height, pixelRatio }
 }
 
 export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
@@ -72,7 +81,6 @@ export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
         'fill-color': backgroundLayer.paint['background-color'],
       }
     }, currentStyle.layers[backgroundLayerIndex + 1].id)
-    map.on('render', (e) => console.log('render', e))
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 
@@ -171,13 +179,13 @@ export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry
             if(iconImage && spriteURL) {
               const sprite = await loadSprite(iconImage, spriteURL)
               if(sprite) {
-                const { dataURL, width, height } = sprite
+                const { dataURL, width, height, pixelRatio } = sprite
                 const image = document.createElementNS(svgNS, 'image');
                 image.setAttributeNS(svgNS, 'href', dataURL)
-                image.setAttributeNS(svgNS, 'x', (x - width / 2).toString()) // NOTE: なぜこれで位置が合うのか分からない
-                image.setAttributeNS(svgNS, 'y', (y - height).toString())
-                image.setAttributeNS(svgNS, 'width', width.toString())
-                image.setAttributeNS(svgNS, 'height', height.toString())
+                image.setAttributeNS(svgNS, 'x', (x - width / pixelRatio / 2).toString()) // NOTE: なぜこれで位置が合うのか分からない
+                image.setAttributeNS(svgNS, 'y', (y - height / pixelRatio).toString())
+                image.setAttributeNS(svgNS, 'width', (width / pixelRatio).toString())
+                image.setAttributeNS(svgNS, 'height', (height / pixelRatio).toString())
                 textGroup.append(image)
               }
             }
