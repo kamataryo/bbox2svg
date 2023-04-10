@@ -171,9 +171,10 @@ function App() {
         </> }
         <hr className="mt-4" />
         <div className='mt-4 text-sm'>
-          <h4>メモ</h4>
+          <h4>NOTE</h4>
           <ul className={'ml-4 list-disc'}>
             <li><strong>{'データを利用する場合はライセンスの表示が必要です'}</strong></li>
+            <li><a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href="https://github.com/kamataryo/bbox2svg/blob/main/README.md#bbox2svg">{'使い方'}</a></li>
             <li><a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href="https://github.com/kamataryo/bbox2svg/issues">{'バグ報告'}</a></li>
             <li><a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href="https://github.com/kamataryo/bbox2svg/pulls">{'改善提案（プルリクエスト）'}</a></li>
           </ul>
