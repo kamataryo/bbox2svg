@@ -90,9 +90,8 @@ export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
   ])
     .filter(feature => feature.layer.source !== bboxSourceId)
     .filter(feature => feature.layer.id.startsWith('tmp__background2__') ? feature.layer.id === tmpBackgroundIdentifier : true)
-    .map(renderedFeature => {
-      const feature = rewind(renderedFeature.toJSON())
-      feature.properties.layer = renderedFeature.layer
+    .map(feature => {
+      feature.properties.layer = feature.layer
 
       if(feature.geometry.type === 'Point') {
         if(turf.inside(feature.geometry, bboxPolygon)) {
@@ -115,11 +114,6 @@ export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
       }
     })
     .filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
-
-  const layerIds = map.getStyle().layers.map(l => l.id)
-  features.sort((fa, fb) => {
-    return layerIds.indexOf(fa.properties.layer.id) - layerIds.indexOf(fb.properties.layer.id)
-  })
 
     // NOTE: 消したいけど、非同期のタイミングがよく分からないため保留
     // map.removeLayer(tmpBackgroundIdentifier)
@@ -271,6 +265,29 @@ export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry
         break;
       }
       case 'Polygon':
+      {
+        const fill = paint['fill-color']
+        const stroke = paint['fill-outline-color']
+        if(fill || stroke) {
+          if(
+            geometry.coordinates.length === 0 ||
+            geometry.coordinates[0].length === 0
+          ) {
+            break
+          }
+          const points = geometry.coordinates[0].map((position) => {
+            const { x, y } = map.project(position as [number, number])
+            return `${x},${y}`
+          }).join(' ')
+          const polygon = document.createElementNS(svgNS, 'polygon')
+          polygon.setAttributeNS(svgNS, 'class', [type, layerId].join(' '))
+          polygon.setAttributeNS(svgNS, 'points', points)
+          fill && polygon.setAttributeNS(svgNS, 'fill', fill.toString())
+          stroke && polygon.setAttributeNS(svgNS, 'stroke', stroke)
+          layerGroupBuffer[layerId].push(polygon)
+        }
+        break
+      }
       case 'MultiPolygon':
       {
         const fill = paint['fill-color']
@@ -283,18 +300,27 @@ export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry
             break
           }
 
-          const coordinatesList = (Array.isArray(geometry.coordinates[0][0][0])) ? geometry.coordinates.flat() : geometry.coordinates
-          for (const coordinates of coordinatesList) {
-            const points = coordinates.map((position) => {
-              const { x, y } = map.project(position as [number, number])
-              return `${x},${y}`
-            }).join(' ')
-            const polygon = document.createElementNS(svgNS, 'polygon')
-            polygon.setAttributeNS(svgNS, 'class', [type, layerId].join(' '))
-            polygon.setAttributeNS(svgNS, 'points', points)
-            fill && polygon.setAttributeNS(svgNS, 'fill', fill.toString())
-            stroke && polygon.setAttributeNS(svgNS, 'stroke', stroke)
-            layerGroupBuffer[layerId].push(polygon)
+          const commands = []
+          for (const coordinatesList of geometry.coordinates) {
+            for (const coordinates of coordinatesList) {
+              for (let index = 0; index < coordinates.length; index++) {
+                const position = coordinates[index];
+                if(index === 0) {
+                  commands.push('M')
+                } else {
+                  commands.push('L')
+                }
+                const { x, y } = map.project(position as [number, number])
+                commands.push([x, y])
+              }
+            }
+            commands.push('Z')
+            const path = document.createElementNS(svgNS, 'path')
+            path.setAttributeNS(svgNS, 'class', [type, layerId].join(' '))
+            path.setAttributeNS(svgNS, 'd', commands.join(' '))
+            fill && path.setAttributeNS(svgNS, 'fill', fill.toString())
+            stroke && path.setAttributeNS(svgNS, 'stroke', stroke)
+            layerGroupBuffer[layerId].push(path)
           }
         }
         break
@@ -311,6 +337,7 @@ export const toSvg = async (map: Map, features: GeoJSON.Feature<GeoJSON.Geometry
   const backgroundLayer = map.getStyle().layers.find(layer => layer.type === 'background')
   for (const layerId of layerIdSeq) {
     if(layerGroupBuffer[layerId]) {
+      layerGroupBuffer[layerId].reverse()
       const g = document.createElementNS(svgNS, 'g')
       for (const element of layerGroupBuffer[layerId]) {
         const svgId = backgroundLayer && layerId.startsWith('tmp__background2__') ? backgroundLayer.id : layerId

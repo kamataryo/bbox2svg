@@ -160,7 +160,6 @@ function App() {
             <li><a className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600" href="https://github.com/kamataryo/bbox2svg/pulls">{'改善提案（プルリクエスト）'}</a></li>
             <li>今後対応するかもしれない機能 (TODO)
               <ul className={'ml-4 list-decimal'}>
-                <li className="italic">ズーム10以下で島が消える</li>
                 <li className="italic">ライセンス表示の自動生成</li>
               </ul>
             </li>
