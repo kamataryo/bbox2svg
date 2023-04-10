@@ -2,8 +2,6 @@
 import type { Map } from '@geolonia/embed';
 import type GeoJSON from 'geojson'
 import * as turf from '@turf/turf'
-// @ts-ignore
-import rewind from '@mapbox/geojson-rewind'
 import { bboxSourceId } from './maplibre';
 
 const svgNS = "http://www.w3.org/2000/svg"
