@@ -92,7 +92,6 @@ function App() {
 
   return (
     <div className="App">
-      {/* @ts-ignore */}
       <GeoloniaMap mapRef={mapRef} hash="on" onLoad={ onLoadCallback } style={{ width: '100%', height: '100%' }}>
         <GeoloniaMap.Control containerProps={ { className: 'maplibregl-ctrl' } } position={'top-left'}>
           <a href="https://github.com/kamataryo/bbox2svg" target="_blank" rel="noreferrer">

@@ -18,6 +18,10 @@ let spriteContainer: {
   image: HTMLImageElement,
 } | null = null
 
+type Layer = {
+  id: string,
+}
+
 const loadSprite = async (name: string, url: string) => {
   if(!spriteContainer) {
     let locationMap, spritePng
@@ -59,7 +63,7 @@ const loadSprite = async (name: string, url: string) => {
 }
 
 export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
-  const bboxPolygon = turf.bboxPolygon(bbox)
+  const bboxPolygon = turf.bboxPolygon(bbox) as GeoJSON.Feature<GeoJSON.Polygon>
   const currentStyle = map.getStyle()
   const backgroundLayer = currentStyle.layers.find(layer => layer.type === 'background')
 
@@ -75,8 +79,8 @@ export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
         data: bboxPolygon,
       },
       paint: {
-        // @ts-ignore
-        'fill-color': backgroundLayer.paint['background-color'],
+      // @ts-ignore
+      'fill-color': backgroundLayer.paint['background-color'],
       }
     }, currentStyle.layers[backgroundLayerIndex + 1].id)
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -113,7 +117,7 @@ export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
     })
     .filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
 
-    // NOTE: 消したいけど、非同期のタイミングがよく分からないため保留
+    // NOTE: 不要なレイヤーを消したいけど、非同期のタイミングがよく分からないため保留
     // map.removeLayer(tmpBackgroundIdentifier)
 
   return features

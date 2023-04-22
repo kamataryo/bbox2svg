@@ -1227,17 +1227,17 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.37.0.tgz#cf1b5fa24217fe007f6487a26d765274925efa7d"
   integrity sha512-x5vzdtOOGgFVDCUs81QRB2+liax8rFg3+7hqM+QhBG0/G3F1ZsoYl97UrqgHgQ9KKT7G6c4V+aTUCgu/n22v1A==
 
-"@geolonia/embed-react@^1.2.1":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@geolonia/embed-react/-/embed-react-1.2.1.tgz#3408f4564718e99f8ec7aa15ea8eb3a46a85c986"
-  integrity sha512-BeJ3CxMzEM5JbjOtFXV/GTilfZrb+XkzOulolDnWaEngfNcyNTJvbLmWi1qrjC+tSccClhVVvzhQRwx64+ZRyQ==
+"@geolonia/embed-react@1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@geolonia/embed-react/-/embed-react-1.2.2.tgz#c26ab21b4ef166dfc851e877387e45aca5356fb6"
+  integrity sha512-dZyE7MXngA8N0vwnBRXvY0IhkhUu+fSBOHsPHgOBjijoL11/zTcTnCnnwahpKPtOlmZCvrZlQtZPBTBBzLBMUA==
   dependencies:
-    deep-equal "^2.0.5"
+    deep-equal "^2.2.0"
 
-"@geolonia/embed@^3.1.3":
-  version "3.1.3"
-  resolved "https://registry.yarnpkg.com/@geolonia/embed/-/embed-3.1.3.tgz#54420ba87900e463cafd3de8de1729eb91f2a1a2"
-  integrity sha512-jGdwm2BfIMyTMp3N+o+mcIbjqRGhbqQ1hZ8qKp6fsQC+ql++EkNj3/pRWrf8MrX4MFZ45rDHep0SK5zrvWus8A==
+"@geolonia/embed@^3.1.4":
+  version "3.1.4"
+  resolved "https://registry.yarnpkg.com/@geolonia/embed/-/embed-3.1.4.tgz#e3360ea41b140519f5d92329efd069389a25844f"
+  integrity sha512-fBrhNf4zHrySj/CeSMDsPmuj/c0PnpT5FbsTvckw/poYkgYiFFEQVaM9r+K7KAfmNeoV/AaV3zvmcng0VVHPig==
   dependencies:
     "@geolonia/mbgl-geolonia-control" "^0.4.2"
     "@geolonia/mbgl-gesture-handling" "^1.0.15"
@@ -4883,7 +4883,7 @@ deep-equal@1.x, deep-equal@^1.0.0:
     object-keys "^1.1.1"
     regexp.prototype.flags "^1.2.0"
 
-deep-equal@^2.0.5:
+deep-equal@^2.0.5, deep-equal@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/deep-equal/-/deep-equal-2.2.0.tgz#5caeace9c781028b9ff459f33b779346637c43e6"
   integrity sha512-RdpzE0Hv4lhowpIUKKMJfeH6C1pXdtT1/it80ubgWqwI3qpuxUBpC1S4hnHg+zjnuOoDkzUtUCEEkG+XG5l3Mw==
