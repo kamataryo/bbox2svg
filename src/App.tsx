@@ -2,8 +2,8 @@ import './App.css';
 import React, { useState, useCallback, useRef } from 'react';
 import { GeoloniaMap } from '@geolonia/embed-react'
 import Modal from 'react-modal'
-import { toByteLabel, toFeatures, toSvg } from './lib';
-import { moveToPoint2, selectOneOfThePoints, bboxSourceId, unselectPoints } from './maplibre';
+import { toByteLabel, toFeatures, toSvg } from './lib/lib';
+import { moveToPoint2, selectOneOfThePoints, bboxSourceId, unselectPoints } from './lib/maplibre';
 import * as turf from '@turf/turf'
 
 import type { Map } from '@geolonia/embed';
@@ -42,7 +42,7 @@ function App() {
   const onLoadCallback = useCallback((map: Map) => {
 
     map.on('style.load', () => {
-      const unavaillableLayers = map.getStyle().layers.filter(
+      const unavailableLayers = map.getStyle().layers.filter(
         layer => (
           layer.type === 'fill-extrusion' ||
           layer.type === 'hillshade' ||
@@ -50,7 +50,7 @@ function App() {
           layer.type === 'raster'
         )
       )
-      for (const layer of unavaillableLayers) {
+      for (const layer of unavailableLayers) {
           map.removeLayer(layer.id)
       }
     })

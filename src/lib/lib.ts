@@ -18,10 +18,6 @@ let spriteContainer: {
   image: HTMLImageElement,
 } | null = null
 
-type Layer = {
-  id: string,
-}
-
 const loadSprite = async (name: string, url: string) => {
   if(!spriteContainer) {
     let locationMap, spritePng
@@ -116,8 +112,7 @@ export const toFeatures = async (map: Map, bbox: turf.helpers.BBox) => {
       }
     })
     .filter(x => !!x) as GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[]
-
-    // NOTE: 不要なレイヤーを消したいけど、非同期のタイミングがよく分からないため保留
+    // NOTE: 不要なレイヤーを消したいが、非同期のタイミングがよく分からないため保留
     // map.removeLayer(tmpBackgroundIdentifier)
 
   return features
