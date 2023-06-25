@@ -97,3 +97,66 @@ export const moveToPoint2 = (map: Map, cursor: number[]) => {
    }
 }
 
+export type ExportAttribution = {
+  html: string
+  text: string
+  links: {
+    href: string
+    text: string
+  }[]
+}
+
+/**
+ * @param map
+ * @returns HTML attribution string list
+ */
+export const getCurrentAttributions = (map: Map): ExportAttribution[] => {
+  let attributions: Array<string> = []
+
+  const sources = map.style.sourceCaches
+  for (const id in sources) {
+    const sourceCache = sources[id]
+    if (sourceCache.used) {
+      const source = sourceCache.getSource()
+      if (source.attribution && attributions.indexOf(source.attribution) < 0) {
+        attributions.push(source.attribution)
+      }
+    }
+  }
+
+  // remove any entries that are substrings of another entry.
+  // first sort by length so that substrings come first
+  attributions.sort((a, b) => a.length - b.length)
+  attributions = attributions
+    .filter((attrib, i) => {
+      for (let j = i + 1; j < attributions.length; j++) {
+        if (attributions[j].indexOf(attrib) >= 0) {
+          return false
+        }
+      }
+      return true
+    })
+    .map((attrib) => attrib.split('|'))
+    .flat()
+    .map((attrib) => attrib.trim())
+
+  const attributionItems: {
+    html: string
+    text: string
+    links: { href: string; text: string }[]
+  }[] = []
+
+  for (const attrib of attributions) {
+    const html = attrib
+    const div = document.createElement('div')
+    div.innerHTML = html
+    const text = div.textContent || ''
+    const links = Array.from(div.querySelectorAll('a')).map((a) => ({
+      href: a.href,
+      text: a.textContent || '',
+    }))
+    attributionItems.push({ html, text, links })
+  }
+
+  return attributionItems
+}

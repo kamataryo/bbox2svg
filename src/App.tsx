@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { GeoloniaMap } from '@geolonia/embed-react'
 import Modal from 'react-modal'
 import { toByteLabel, toFeatures, toSvg } from './lib/lib';
-import { moveToPoint2, selectOneOfThePoints, bboxSourceId, unselectPoints } from './lib/maplibre';
+import { moveToPoint2, selectOneOfThePoints, bboxSourceId, unselectPoints, getCurrentAttributions } from './lib/maplibre';
 import * as turf from '@turf/turf'
 
 import type { Map } from '@geolonia/embed';
@@ -60,12 +60,11 @@ function App() {
       selectOneOfThePoints(map, point, async () => {
         const source = map.getSource(bboxSourceId)
         if(source) {
-          const attributions = document.querySelector('.maplibregl-ctrl-attrib-inner')
-          console.log(attributions)
+          const attribution = getCurrentAttributions(map)
           const mask = source.serialize().data.features[0]
           const bbox = turf.bbox(mask)
           const features = await toFeatures(map, bbox)
-          const { xml: svgString, width, height } = await toSvg(map, features, bbox, '©︎ Geolonia | ©︎ OpenStreetMap Contributors')
+          const { xml: svgString, width, height } = await toSvg(map, features, bbox, attribution)
           const blob = new Blob([svgString],{ type: 'image/svg+xml' })
           const url = URL.createObjectURL(blob)
           const size = blob.size

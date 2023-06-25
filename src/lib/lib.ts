@@ -2,7 +2,7 @@
 import type { Map } from '@geolonia/embed';
 import type GeoJSON from 'geojson'
 import * as turf from '@turf/turf'
-import { bboxSourceId } from './maplibre';
+import { ExportAttribution, bboxSourceId } from './maplibre';
 
 const svgNS = "http://www.w3.org/2000/svg"
 const svgTextAnchor: { [key: string]: string } = {
@@ -122,7 +122,7 @@ export const toSvg = async (
   map: Map,
   features: GeoJSON.Feature<GeoJSON.Geometry, { layer: any }>[],
   bbox: turf.helpers.BBox,
-  attribution?: string,
+  attributions: ExportAttribution[],
 ) => {
   const [left, bottom, right, top] = bbox
   const projectedLeftTop = map.project([left, top])
@@ -350,19 +350,32 @@ export const toSvg = async (
     }
   }
 
-  if(attribution) {
+  if(attributions.length > 0) {
     const text = document.createElementNS(svgNS, 'text')
     text.setAttributeNS(svgNS, 'x', (projectedRightBottom.x - 6).toString())
     text.setAttributeNS(svgNS, 'y', (projectedRightBottom.y - 6).toString())
     text.setAttributeNS(svgNS, 'fill', 'black')
-    text.setAttributeNS(svgNS, 'font-size', '12')
+    text.setAttributeNS(svgNS, 'font-size', '8')
     text.setAttributeNS(svgNS, 'text-anchor', 'end')
     text.setAttributeNS(svgNS, 'id', 'attribution')
-    text.textContent = attribution
+    text.textContent = attributions.map(attr => attr.links[0].text).join(' | ')
+
+    // NOTE: anchor 要素が一部のベクタグラフィックスソフトウェアで表示されないため一旦保留
+    // let tspan: SVGTSpanElement | null = null
+    // for (const attribution of attributions) {
+    //   const anchor = document.createElementNS(svgNS, 'a')
+    //   anchor.setAttributeNS(svgNS, 'href', attribution.links[0].href)
+    //   anchor.textContent = attribution.links[0].text
+    //   text.append(anchor)
+    //   tspan = document.createElementNS(svgNS, 'tspan')
+    //   tspan.textContent = ' | '
+    //   text.append(tspan)
+    // }
+    // tspan && tspan.remove() // 最後の | を削除
     svg.append(text)
   }
 
-  return { xml: `<?xml version="1.0"?>\n${svg.outerHTML}`, width, height}
+  return { xml: `<?xml version="1.0"?>\n${svg.outerHTML}`, width, height }
 }
 
 export const toByteLabel = (byte: number) => {
