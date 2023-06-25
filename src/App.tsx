@@ -92,7 +92,7 @@ function App() {
 
   return (
     <div className="App">
-      <GeoloniaMap mapRef={mapRef} hash="on" onLoad={ onLoadCallback } style={{ width: '100%', height: '100%' }}>
+      <GeoloniaMap mapStyle={'geolonia/basic-v1'} mapRef={mapRef} hash="on" onLoad={ onLoadCallback } style={{ width: '100%', height: '100%' }}>
         <GeoloniaMap.Control containerProps={ { className: 'maplibregl-ctrl' } } position={'top-left'}>
           <a href="https://github.com/kamataryo/bbox2svg" target="_blank" rel="noreferrer">
             <h1 className={'m-1 p-1 text-md text-gray-600 bg-opacity-30 bg-zinc-50 rounded-sm'}>
